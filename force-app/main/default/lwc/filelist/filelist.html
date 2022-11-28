@@ -1,0 +1,81 @@
+<template>
+    <h1>File Explorer</h1>
+    <lightning-input type="search" class = "slds-m-bottom_small" label = "Search">Select File</lightning-input>
+    <div>
+        <input class="file-chooser" type="file" id="file-chooser" onchange={onFileInputChange}>
+        <label for="file-chooser">Select File</label>
+        <template if:true={fileToBeUploaded}>
+            <div>{fileToBeUploaded.name}</div>
+        </template>
+        <div class="upload-button" onclick={uploadFile}>Upload</div>
+    </div>
+    <!-- <lightning-input type="file" onchange={onUpload}></lightning-input> -->
+    <template if:true={filesToBeUploaded.length} for:each={filesToBeUploaded} for:item="file">
+        <div key={file.name}>{file.name}</div>
+    </template>
+    <div class="header">
+        <template if:true={currentPath.length}>
+            <div onclick={onBackClick} class="back-button">
+                <lightning-icon icon-name="utility:back" class="back-arrow-icon" size="x-small"></lightning-icon>
+                back
+            </div>
+        </template>
+        <template if:false={currentPath.length}>
+            <div onclick={onBackClick} class="back-button-disabled">
+                <lightning-icon icon-name="utility:back" class="back-arrow-icon" size="x-small"></lightning-icon>
+                back
+            </div>
+        </template>
+        <template if:true={currentPath.length}>
+            <div class="current-path-indicator">{displayedCurrentPath}</div>
+        </template>
+    </div>
+    <template if:true={files}>
+        <div class="table-container">
+            <div class="table-header">
+
+            </div>
+            <table class="slds-table slds-table_cell-buffer slds-table_bordered file-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>File Size</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <template for:each={files} for:item="currentItem">
+                        <tr key={currentItem.Key} class="table-row">
+                            <th onclick={currentItem.onclick}>
+                                <div style="cursor: pointer;">
+                                    <lightning-icon icon-name={currentItem.Icon} size="x-small" class="file-type-icon"></lightning-icon>
+                                    {currentItem.Key}
+                                </div>  
+                            </th>
+                            <th>{currentItem.FileSize}</th>
+                            <th>
+                                <template if:true={currentItem.CanOpenInWebviewer}>
+                                    <div class="slds-button slds-button_brand button-cursor" onclick={currentItem.onOpenClick}>Open</div>
+                                    <div class="slds-button slds-button_destructive button-cursor" onclick={currentItem.onDeleteClick}>Delete</div>
+                                </template>
+                            </th>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+        </div>
+    </template>
+    <template if:true={deleteModalOpened}>
+        <div class="delete-modal">
+            Do you want to delete {fileToBeDeleted}?
+            <div>
+                <div class="slds-button slds-button_success button-cursor" onclick={deleteFile}>Confirm</div>
+                <div class="slds-button slds-button_destructive button-cursor" onclick={cancelDeleteModal}>Cancel</div>
+            </div>
+        </div>
+    </template>
+    <template if:false={files}>
+        <div>Loading files</div>
+        <c-spinner></c-spinner>
+    </template>
+</template>

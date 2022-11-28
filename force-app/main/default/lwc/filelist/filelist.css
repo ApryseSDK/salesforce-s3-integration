@@ -1,0 +1,87 @@
+.title {
+    background-color: white;
+}
+
+.header {
+    padding: 10px 0;
+}
+
+.back-button {
+    cursor: pointer;
+    background-color: white;
+    display: inline-block;
+    width: fit-content;
+    padding: 6px;
+    border-radius: 6px;
+    font-weight: bold;
+    --lwc-colorTextIconDefault: black;
+}
+
+.back-button-disabled {
+    cursor: pointer;
+    background-color: #b9b9b9;
+    display: inline-block;
+    width: fit-content;
+    padding: 6px;
+    border-radius: 6px;
+    font-weight: bold;
+    color: #e6e5e5;
+    --lwc-colorTextIconDefault: #CCCCCC;
+}
+
+.back-button:hover {
+    background-color: #1798C1;
+    --lwc-colorTextIconDefault: white;
+    color: white;
+}
+
+.back-arrow-icon {
+    vertical-align: text-top;
+    margin-right: 5px;
+}
+
+.current-path-indicator {
+    display: inline-block;
+    margin-left: 10px;
+    font-weight: bold;
+}
+
+.table-container {
+    display: block;
+    height: 300px;
+    overflow-y: scroll;
+}
+
+.table-row {
+    font-weight: normal;
+    padding: 6px 0;
+}
+
+.table-row:hover {
+    background-color: #ccc;
+}
+
+.file-type-icon {
+    vertical-align: text-top;
+    margin-right: 5px;
+}
+
+.delete-modal {
+    position: absolute;
+    background-color: white;
+    top: 20px;
+    left: 20px;
+    padding: 20px;
+}
+
+.button-cursor {
+    cursor: pointer;
+}
+
+.upload-button {
+    display: inline-block;
+}
+
+.file-chooser {
+    display: none;
+}
