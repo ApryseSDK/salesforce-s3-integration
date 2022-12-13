@@ -39,6 +39,9 @@ export default class Filelist extends LightningElement {
     deleteModalOpened = false;
     fileToBeUploaded = null;
     filesToBeUploaded = [];
+    uploadButtonAvailable = false;
+    eventListenersAdded = false;
+    isUploadingFile = false;
 
     connectedCallback() {
         console.log("connected call back")
@@ -61,6 +64,17 @@ export default class Filelist extends LightningElement {
         .catch(err => {
             console.log(err);
         })
+    }
+
+    renderedCallback() {
+        if (this.eventListenersAdded) {
+            return;
+        }
+
+        this.eventListenersAdded = true;
+        console.log('regiser events');
+        this.registerEvents();
+        // this.setUploadButtonAvailability();
     }
 
     initializeAWS() {
@@ -101,6 +115,8 @@ export default class Filelist extends LightningElement {
 
     async uploadFile() {
         console.log('start upload', this.currentPath);
+        this.setUploadButtonAvailability();
+        this.isUploadingFile = true;
         const binary = await this.getBinaryStringFromFile(this.fileToBeUploaded);
         const params = {
             Body: binary,
@@ -115,8 +131,13 @@ export default class Filelist extends LightningElement {
             this.fileToBeUploaded = null;
             console.log('finished put new object', data);
             console.log('current path', this.currentPath);
-            const folderPrefix = this.currentPath.join('/');
+            let folderPrefix = this.currentPath.join('/');
             console.log('upload folder prefix', folderPrefix)
+            if (this.currentPath.length) {
+                folderPrefix += '/';
+            }
+            this.isUploadingFile = false;
+            this.setUploadButtonAvailability();
             this.listObjectsInFolder(folderPrefix);
             return null;
         })
@@ -192,7 +213,7 @@ export default class Filelist extends LightningElement {
                     LastModifiedAt: item.LastModified.toString(),
                     Icon: fileTypeIconMap[this.getFileTypeFromFileName(item.Key).toUpperCase()],
                     // this will probably need a map in the future
-                    CanOpenInWebviewer: webviewerSupportedFormatMap[fileType]? true : false,
+                    CanOpenInWebviewer: webviewerSupportedFormatMap[fileType.toLowerCase()]? true : false,
                     // CanOpenInWebviewer: true,
                     onOpenClick: function() {
                         this.openFileInWebviewer(item.Key);
@@ -220,7 +241,7 @@ export default class Filelist extends LightningElement {
         }, (err, data) => {
             if (err) console.log(err);
             this.deleteModalOpened = false;
-            let folderPrefix = this.currentPath.join('/');
+            let folderPrefix = this.currentPath.join('/') + '/';
             // folderPrefix = `/${folderPrefix}`;
             console.log('after delete folder prefix', folderPrefix);
             this.listObjectsInFolder(folderPrefix);
@@ -246,6 +267,7 @@ export default class Filelist extends LightningElement {
         console.log(this.filesToBeUploaded);
     }
 
+    // this is for future improvement to upload multiple files at once
     uploadFiles() {
         const numberOfFilesToBeUploaded = this.filesToBeUploaded.length;
         const uploadPromises = [];
@@ -257,11 +279,58 @@ export default class Filelist extends LightningElement {
                     Bucket: bucketName,
                     Key: `custom/johnny/${this.fileToBeUploaded.name}`,
                     ContentType: 'application/pdf'
-                }
+                };
                 this.s3.putObject({
                     
                 })
             }))
+        }
+    }
+
+    registerEvents = () => {
+        const dropArea = this.template.querySelector('[data-id="upload-area"]');
+        console.log('drop area', dropArea);
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, this.preventDefaults)
+        });
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropArea.addEventListener(eventName, this.highlight);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, this.unhighlight);
+        });
+
+        dropArea.addEventListener('drop', this.handleDrop);
+    }
+
+    handleDrop = (e) => {
+        let dt = e.dataTransfer.files;
+        console.log('dt', dt);
+        this.fileToBeUploaded = e.dataTransfer.files[0];
+        this.setUploadButtonAvailability();
+    }
+
+    preventDefaults = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+    };
+
+
+    highlight = (e) => {
+        // this.dragZoneActive = true;
+    };
+
+    unhighlight = (e) => {
+        // this.dragZoneActive = false;
+    };
+
+    setUploadButtonAvailability = () => {
+        if (!this.fileToBeUploaded || this.isUploadingFile) {
+            this.uploadButtonAvailable = false;
+        } else {
+            this.uploadButtonAvailable = true;
         }
     }
 }
