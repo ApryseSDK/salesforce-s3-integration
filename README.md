@@ -1,18 +1,25 @@
-# Salesforce DX Project: Next Steps
+# Salesforce with AWS S3 integration 
 
-Now that you’ve created a Salesforce DX project, what’s next? Here are some documentation resources to get you started.
+It's possible to integrate Amazon S3 Simple storage service and Webviewer in Salesforce for custom file management and documents viewing. This would allow Salesforce users to upload files larger than the native limit of Salesforce.
 
-## How Do You Plan to Deploy Your Changes?
+Prerequisite:
+1. AWS account
+2. AWS credential
+3. salesforce account
 
-Do you want to deploy a set of changes, or create a self-contained application? Choose a [development model](https://developer.salesforce.com/tools/vscode/en/user-guide/development-models).
+## Add custom label
+Custom labels are custom text values that can be accessed from Apex classes and Lightning components. It's a proper place to store the access key id and secret key of AWS.
 
-## Configure Your Salesforce DX Project
+## Update S3 bucket CORS policy
+By default, actions of uploading/deleting/getting files are blocked by s3 bucket. You will need to allow "GET", "POST", and "DELETE" methods in the bucket's CORS policy,
 
-The `sfdx-project.json` file contains useful configuration information for your project. See [Salesforce DX Project Configuration](https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_ws_config.htm) in the _Salesforce DX Developer Guide_ for details about this file.
+## Set up S3 File List Component 
 
-## Read All About It
+1. Clone the repository at: https://github.com/PDFTron/salesforce-s3-integration
+2. Upload the _aws-sdk.min.js_ file in the root folder to your Salesforce's static resources.
+3. Deploy the force-app to your salesforce website.
+4. Click the setting button on the right, and click "Edit Page".
+5. Drag the "S3 Files List" component from the "custom" section to the page.
+6. Click the "Save" button and you should be able to see the file list component on the page.
 
-- [Salesforce Extensions Documentation](https://developer.salesforce.com/tools/vscode/)
-- [Salesforce CLI Setup Guide](https://developer.salesforce.com/docs/atlas.en-us.sfdx_setup.meta/sfdx_setup/sfdx_setup_intro.htm)
-- [Salesforce DX Developer Guide](https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_intro.htm)
-- [Salesforce CLI Command Reference](https://developer.salesforce.com/docs/atlas.en-us.sfdx_cli_reference.meta/sfdx_cli_reference/cli_reference.htm)
+* The Files List component make a reqeust whenever listing all the folders and files at the each file path (such as /bucket/folder), as well as adding or deleting the files in the bucket. It would make quite an amount of requests when taking actions, so please make sure you have a adaquate pla
