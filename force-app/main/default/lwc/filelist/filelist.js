@@ -1,22 +1,25 @@
 import { LightningElement, wire } from 'lwc';
 import { loadScript } from 'lightning/platformResourceLoader';
-import AWS_SDK from '@salesforce/resourceUrl/awssdk'
-import accessKeyId from '@salesforce/label/c.AWSAccessKeyId';
-import secretAccessKey from '@salesforce/label/c.AWSSecretKey';
-import region from '@salesforce/label/c.S3Region';
-import bucketName from '@salesforce/label/c.S3FolderName';
+import targetFolderPrefix from '@salesforce/label/c.targetFolderPrefix';
 import fileTypeIconMap from './fileTypeIconMap';
 import BACKARROW_ICON from '@salesforce/resourceUrl/backArrowIcon';
 import { fireEvent } from 'c/pubsub';
 import { CurrentPageReference } from 'lightning/navigation';
 import webviewerSupportedFormatMap from './webviewerSupportedFormatMap';
+import helpers from './helpers/index';
+// import custom labels
+import AWS_SDK from '@salesforce/resourceUrl/awssdk'
+import accessKeyId from '@salesforce/label/c.AWSAccessKeyId';
+import secretAccessKey from '@salesforce/label/c.AWSSecretKey';
+import region from '@salesforce/label/c.S3Region';
+import bucketName from '@salesforce/label/c.S3BucketName';
+import S3_Bucket_url from '@salesforce/label/c.S3_Bucket_url';
 
 export default class Filelist extends LightningElement {
-    s3Url = 'https://pdftron.s3.amazonaws.com/'
     @wire(CurrentPageReference) pageRef;
+    s3Url = S3_Bucket_url
     s3 = "";
     files = false;
-    filesRetrieved = false;
     currentPath = [];
     displayedCurrentPath = "";
     columns = [
@@ -38,13 +41,12 @@ export default class Filelist extends LightningElement {
     fileToBeDeleted = null;
     deleteModalOpened = false;
     fileToBeUploaded = null;
-    filesToBeUploaded = [];
+    filesToBeUploaded = []; // could be used to develop files bulk uploading in the future
     uploadButtonAvailable = false;
     eventListenersAdded = false;
     isUploadingFile = false;
 
     connectedCallback() {
-        console.log("connected call back")
         Promise.all([
             loadScript(this, AWS_SDK),
         ])
@@ -55,9 +57,7 @@ export default class Filelist extends LightningElement {
                 Delimiter: "/"
             }, (err, data) => {
                 if (err) return console.log(err);
-                console.log(data);
                 this.displayFilesFromS3Data(data);
-                console.log(this.currentPath);
                 return console.log('success', data);
             })
         })
@@ -72,13 +72,10 @@ export default class Filelist extends LightningElement {
         }
 
         this.eventListenersAdded = true;
-        console.log('regiser events');
         this.registerEvents();
-        // this.setUploadButtonAvailability();
     }
 
     initializeAWS() {
-        console.log('init aws');
         window.AWS.config.update({
             accessKeyId,
             secretAccessKey
@@ -92,47 +89,31 @@ export default class Filelist extends LightningElement {
         });
     }
 
-    formatBytes(bytes, decimals = 2) {
-        if (!+bytes) return '0 Bytes';
-        const k = 1024;
-        const dm = decimals < 0? 0: decimals;
-        const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
-    }
-
     onFileInputChange(e) {
-        console.log(e.target.files[0]);
         if (e.target.files.length) {
             this.fileToBeUploaded = e.target.files[0];
+            this.setUploadButtonAvailability();
         }
     }
 
     getFileTypeFromFileName(fileName) {
-        console.log('get file type', fileName);
         return fileName.split('.').pop();
     }
 
     async uploadFile() {
-        console.log('start upload', this.currentPath);
-        this.setUploadButtonAvailability();
         this.isUploadingFile = true;
-        const binary = await this.getBinaryStringFromFile(this.fileToBeUploaded);
+        this.setUploadButtonAvailability();
         const params = {
-            Body: binary,
+            Body: this.fileToBeUploaded,
             Bucket: bucketName,
-            Key: `custom/johnny/${this.fileToBeUploaded.name}`,
-            ContentType: 'application/pdf'
+            Key: `${targetFolderPrefix}${this.fileToBeUploaded.name}`,
+            ContentType: '*/*'
         }
         this.files = false;
-        console.log(params);
         this.s3.putObject(params, (err, data) => {
             if (err) return console.log(err);
             this.fileToBeUploaded = null;
-            console.log('finished put new object', data);
-            console.log('current path', this.currentPath);
             let folderPrefix = this.currentPath.join('/');
-            console.log('upload folder prefix', folderPrefix)
             if (this.currentPath.length) {
                 folderPrefix += '/';
             }
@@ -153,14 +134,12 @@ export default class Filelist extends LightningElement {
     }
 
     listObjectsInFolder(folderPrefix) {
-        console.log('list objects In folder', folderPrefix);
         this.s3.listObjectsV2({
             Bucket: bucketName,
             Delimiter: "/", 
             Prefix: folderPrefix
         }, (err, data) => {
             if (err) console.log(err);
-            console.log(data);
             this.displayFilesFromS3Data(data);
         });
     }
@@ -168,10 +147,8 @@ export default class Filelist extends LightningElement {
     onFolderClick(folderPrefix) {
         const folderPathArray = folderPrefix.split("/");
         folderPathArray.pop();
-        console.log(folderPathArray);
         this.currentPath = folderPathArray;
         this.displayedCurrentPath = this.currentPath.join("/");
-        console.log(this.currentPath);
         this.files = false;
         this.listObjectsInFolder(folderPrefix);
     }
@@ -205,13 +182,12 @@ export default class Filelist extends LightningElement {
         }));
         data.Contents.forEach(item => {
             if (item.Size !== 0) {
-                const fileType = this.getFileTypeFromFileName(item.Key);
-                console.log(fileType);
+                const fileType = helpers.getFileTypeByFileName(item.Key);
                 displayedItems.push({
                     Key: item.Key.replace(folderPrefix, ""),
-                    FileSize: this.formatBytes(item.Size),
+                    FileSize: helpers.formatBytes(item.Size),
                     LastModifiedAt: item.LastModified.toString(),
-                    Icon: fileTypeIconMap[this.getFileTypeFromFileName(item.Key).toUpperCase()],
+                    Icon: fileTypeIconMap[fileType.toUpperCase()],
                     // this will probably need a map in the future
                     CanOpenInWebviewer: webviewerSupportedFormatMap[fileType.toLowerCase()]? true : false,
                     // CanOpenInWebviewer: true,
@@ -228,7 +204,6 @@ export default class Filelist extends LightningElement {
     }
 
     openFileInWebviewer(itemKey) {
-        console.log('itemKey', itemKey)
         const fileUrl = this.s3Url + itemKey;
         fireEvent(this.pageRef, 'openFileWithUrl', decodeURIComponent(fileUrl))
     }
@@ -242,10 +217,7 @@ export default class Filelist extends LightningElement {
             if (err) console.log(err);
             this.deleteModalOpened = false;
             let folderPrefix = this.currentPath.join('/') + '/';
-            // folderPrefix = `/${folderPrefix}`;
-            console.log('after delete folder prefix', folderPrefix);
             this.listObjectsInFolder(folderPrefix);
-            console.log('list objects');
         })
     }
 
@@ -264,7 +236,6 @@ export default class Filelist extends LightningElement {
         const currentSelectedFiles = [...this.filesToBeUploaded];
         currentSelectedFiles.push(file);
         this.filesToBeUploaded = currentSelectedFiles;
-        console.log(this.filesToBeUploaded);
     }
 
     // this is for future improvement to upload multiple files at once
@@ -277,7 +248,7 @@ export default class Filelist extends LightningElement {
                 const params = {
                     Body: binary,
                     Bucket: bucketName,
-                    Key: `custom/johnny/${this.fileToBeUploaded.name}`,
+                    Key: `${targetFolderPrefix}${this.fileToBeUploaded.name}`,
                     ContentType: 'application/pdf'
                 };
                 this.s3.putObject({
@@ -289,25 +260,14 @@ export default class Filelist extends LightningElement {
 
     registerEvents = () => {
         const dropArea = this.template.querySelector('[data-id="upload-area"]');
-        console.log('drop area', dropArea);
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
             dropArea.addEventListener(eventName, this.preventDefaults)
-        });
-
-        ['dragenter', 'dragover'].forEach(eventName => {
-            dropArea.addEventListener(eventName, this.highlight);
-        });
-
-        ['dragleave', 'drop'].forEach(eventName => {
-            dropArea.addEventListener(eventName, this.unhighlight);
         });
 
         dropArea.addEventListener('drop', this.handleDrop);
     }
 
     handleDrop = (e) => {
-        let dt = e.dataTransfer.files;
-        console.log('dt', dt);
         this.fileToBeUploaded = e.dataTransfer.files[0];
         this.setUploadButtonAvailability();
     }
@@ -315,15 +275,6 @@ export default class Filelist extends LightningElement {
     preventDefaults = (e) => {
         e.preventDefault();
         e.stopPropagation();
-    };
-
-
-    highlight = (e) => {
-        // this.dragZoneActive = true;
-    };
-
-    unhighlight = (e) => {
-        // this.dragZoneActive = false;
     };
 
     setUploadButtonAvailability = () => {

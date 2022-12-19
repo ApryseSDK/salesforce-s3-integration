@@ -76,6 +76,7 @@
     display: block;
     height: 300px;
     overflow-y: auto;
+    background-color: white;
 }
 
 .table-row {
@@ -136,4 +137,9 @@
     background-color: black;
     opacity: 0.6;
     z-index: 999;
+}
+
+.delete-modal-buttons-container {
+    text-align: center;
+    margin-top: 20px;
 }
