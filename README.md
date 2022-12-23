@@ -7,8 +7,17 @@ Prerequisite:
 2. AWS credential
 3. salesforce account
 
+You will also need to setup Webviewer instance following the repository at: 
+
 ## Add custom label
 Custom labels are custom text values that can be accessed from Apex classes and Lightning components. It's a proper place to store the access key id and secret key of AWS.
+
+Please add the following custom labels to ensure the project runs correctly.
+1. AWSAccessKeyId: Your AWS access key
+2. AWSSecretKey: Your AWS secret key
+3. S3BucketName: the name of your bucket.
+4. S3Region: Your s3 bucket region
+5. targetFolderPrefix (optional): This label indicate the path that the file will be uploaded to. 
 
 ## Update S3 bucket CORS policy
 By default, actions of uploading/deleting/getting files are blocked by s3 bucket. You will need to allow "GET", "POST", and "DELETE" methods in the bucket's CORS policy,

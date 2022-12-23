@@ -1,13 +1,22 @@
 <template>
     <h1>File Explorer</h1>
     <lightning-input type="search" class = "slds-m-bottom_small" label = "Search">Select File</lightning-input>
-    <div>
+    <div class="upload-container" data-id="upload-area">
         <input class="file-chooser" type="file" id="file-chooser" onchange={onFileInputChange}>
-        <label for="file-chooser">Select File</label>
         <template if:true={fileToBeUploaded}>
-            <div>{fileToBeUploaded.name}</div>
+            <div class="uploaded-file-name">{fileToBeUploaded.name}</div>
         </template>
-        <div class="upload-button" onclick={uploadFile}>Upload</div>
+        <label class="upload-content-container" for="file-chooser">
+            <lightning-icon icon-name="utility:new" size="large" class="upload-file-icon"></lightning-icon>
+            <div>Click to select file</div>
+            <div>or drag your file here</div>
+        </label>
+        <template if:true={uploadButtonAvailable}>
+            <button class="upload-button" onclick={uploadFile}>Upload</button>
+        </template>
+        <template if:false={uploadButtonAvailable}>
+            <button class="upload-button" disabled>Upload</button>
+        </template>
     </div>
     <!-- <lightning-input type="file" onchange={onUpload}></lightning-input> -->
     <template if:true={filesToBeUploaded.length} for:each={filesToBeUploaded} for:item="file">
@@ -56,8 +65,8 @@
                             <th>
                                 <template if:true={currentItem.CanOpenInWebviewer}>
                                     <div class="slds-button slds-button_brand button-cursor" onclick={currentItem.onOpenClick}>Open</div>
-                                    <div class="slds-button slds-button_destructive button-cursor" onclick={currentItem.onDeleteClick}>Delete</div>
                                 </template>
+                                <div class="slds-button slds-button_destructive button-cursor" onclick={currentItem.onDeleteClick}>Delete</div>
                             </th>
                         </tr>
                     </template>
@@ -66,9 +75,10 @@
         </div>
     </template>
     <template if:true={deleteModalOpened}>
+        <div class="modal-backdrop"></div>
         <div class="delete-modal">
-            Do you want to delete {fileToBeDeleted}?
-            <div>
+            Do you want to delete <strong>{fileToBeDeleted}</strong>?
+            <div class="delete-modal-buttons-container">
                 <div class="slds-button slds-button_success button-cursor" onclick={deleteFile}>Confirm</div>
                 <div class="slds-button slds-button_destructive button-cursor" onclick={cancelDeleteModal}>Cancel</div>
             </div>

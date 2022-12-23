@@ -2,6 +2,32 @@
     background-color: white;
 }
 
+.uploaded-file-name {
+    font-size: 18px;
+    padding-top: 20px;
+}
+
+.upload-container {
+    text-align: center;
+    border: 1px dashed gray;
+    background-color: white;
+}
+
+.upload-content-container {
+    color: gray;
+    font-weight: bold;
+    padding-top: 20px;
+    display: block;
+    width: fit-content;
+    margin: auto;
+    cursor: pointer;
+}
+
+.upload-file-icon {
+    --sds-c-icon-color-foreground: rgb(0, 158, 219);
+    --lwc-colorTextIconDefault: rgb(0, 158, 219);
+}
+
 .header {
     padding: 10px 0;
 }
@@ -49,7 +75,8 @@
 .table-container {
     display: block;
     height: 300px;
-    overflow-y: scroll;
+    overflow-y: auto;
+    background-color: white;
 }
 
 .table-row {
@@ -67,11 +94,13 @@
 }
 
 .delete-modal {
-    position: absolute;
+    position: fixed;
     background-color: white;
-    top: 20px;
-    left: 20px;
+    top: 50%;
+    left: 50%;
     padding: 20px;
+    transform: translate(-50%, -50%);
+    z-index: 999999;
 }
 
 .button-cursor {
@@ -80,8 +109,37 @@
 
 .upload-button {
     display: inline-block;
+    font-size: 20px;
+    color: white;
+    padding: 8px 30px;
+    background-color: rgb(0, 158, 219);
+    border-radius: 6px;
+    margin-top: 20px;
+    margin-bottom: 20px;
+    cursor: pointer;
+    border: none;
+}
+
+.upload-button:hover, .upload-button:active {
+    background-color: rgb(0, 137, 191);
 }
 
 .file-chooser {
     display: none;
+}
+
+.modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: black;
+    opacity: 0.6;
+    z-index: 999;
+}
+
+.delete-modal-buttons-container {
+    text-align: center;
+    margin-top: 20px;
 }
