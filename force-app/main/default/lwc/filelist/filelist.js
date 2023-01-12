@@ -1,4 +1,4 @@
-import { LightningElement, wire } from 'lwc';
+import { LightningElement, wire, track } from 'lwc';
 import { loadScript } from 'lightning/platformResourceLoader';
 import targetFolderPrefix from '@salesforce/label/c.targetFolderPrefix';
 import fileTypeIconMap from './fileTypeIconMap';
@@ -7,6 +7,9 @@ import { fireEvent } from 'c/pubsub';
 import { CurrentPageReference } from 'lightning/navigation';
 import webviewerSupportedFormatMap from './webviewerSupportedFormatMap';
 import helpers from './helpers/index';
+import insertNewFile from '@salesforce/apex/PDFTron_S3FileRecordController.insertNewFile';
+import searchFileRecords from '@salesforce/apex/PDFTron_S3FileRecordController.searchFileRecords';
+import deleteFileRecord from '@salesforce/apex/PDFTron_S3FileRecordController.deleteFileRecord'
 // import custom labels
 import AWS_SDK from '@salesforce/resourceUrl/awssdk'
 import accessKeyId from '@salesforce/label/c.AWSAccessKeyId';
@@ -17,6 +20,8 @@ import S3_Bucket_url from '@salesforce/label/c.S3_Bucket_url';
 
 export default class Filelist extends LightningElement {
     @wire(CurrentPageReference) pageRef;
+    @track file__c;
+    @track error;
     s3Url = S3_Bucket_url
     s3 = "";
     files = false;
@@ -45,6 +50,7 @@ export default class Filelist extends LightningElement {
     uploadButtonAvailable = false;
     eventListenersAdded = false;
     isUploadingFile = false;
+    searchKeyWord = "";
 
     connectedCallback() {
         Promise.all([
@@ -54,15 +60,15 @@ export default class Filelist extends LightningElement {
             this.initializeAWS();
             this.s3.listObjectsV2({
                 Bucket: bucketName,
-                Delimiter: "/"
+                Delimiter: "/",
             }, (err, data) => {
-                if (err) return console.log(err);
+                if (err) return console.error(err);
                 this.displayFilesFromS3Data(data);
                 return console.log('success', data);
             })
         })
         .catch(err => {
-            console.log(err);
+            console.error(err);
         })
     }
 
@@ -110,8 +116,12 @@ export default class Filelist extends LightningElement {
             ContentType: '*/*'
         }
         this.files = false;
-        this.s3.putObject(params, (err, data) => {
-            if (err) return console.log(err);
+        this.s3.putObject(params, async (err, data) => {
+            if (err) return console.error(err);
+            await insertNewFile({
+                fileName: this.fileToBeUploaded.name,
+                filePath: `${targetFolderPrefix}${this.fileToBeUploaded.name}`
+            })
             this.fileToBeUploaded = null;
             let folderPrefix = this.currentPath.join('/');
             if (this.currentPath.length) {
@@ -139,7 +149,7 @@ export default class Filelist extends LightningElement {
             Delimiter: "/", 
             Prefix: folderPrefix
         }, (err, data) => {
-            if (err) console.log(err);
+            if (err) console.error(err);
             this.displayFilesFromS3Data(data);
         });
     }
@@ -213,8 +223,11 @@ export default class Filelist extends LightningElement {
         this.s3.deleteObject({
             Bucket: this.bucketName,
             Key: this.fileToBeDeleted
-        }, (err, data) => {
+        }, async (err, data) => {
             if (err) console.log(err);
+            await deleteFileRecord({
+                filePath: this.fileToBeDeleted
+            });
             this.deleteModalOpened = false;
             let folderPrefix = this.currentPath.join('/') + '/';
             this.listObjectsInFolder(folderPrefix);
@@ -284,4 +297,43 @@ export default class Filelist extends LightningElement {
             this.uploadButtonAvailable = true;
         }
     }
-}
+
+    onSearchInputChange(e) {
+        this.searchKeyWord = e.target.value;
+    }
+    
+    async searchFileRecords() {
+        // const resp = await searchFileRecords({input: '1'});
+        if (!this.searchKeyWord) {
+            this.s3.listObjectsV2({
+                Bucket: bucketName,
+                Delimiter: "/",
+            }, (err, data) => {
+                if (err) return console.error(err);
+                this.displayFilesFromS3Data(data);
+                return console.log('success', data);
+            });
+            return;
+        }
+        this.files = false;
+        const resp = await searchFileRecords({
+            input: this.searchKeyWord
+        });
+
+        const searchedFiles = resp.map((file) => ({
+            Key: file.Name,
+            FileSize: '-',
+            Icon: fileTypeIconMap[helpers.getFileTypeByFileName(file.Name).toUpperCase()],
+            // this will probably need a map in the future
+            CanOpenInWebviewer: webviewerSupportedFormatMap[helpers.getFileTypeByFileName(file.Name).toLowerCase()]? true : false,
+            // CanOpenInWebviewer: true,
+            onOpenClick: function() {
+                this.openFileInWebviewer(file.S3_Path__c);
+            },
+            onDeleteClick: function() {
+                this.openDeleteModal(file.S3_Path__c);
+            }
+        }));
+        this.files = searchedFiles;
+    }
+}   
