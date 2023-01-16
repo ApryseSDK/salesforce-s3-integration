@@ -34,13 +34,14 @@
 
 .back-button {
     cursor: pointer;
-    background-color: white;
+    background-color: rgb(0, 158, 219);
     display: inline-block;
     width: fit-content;
     padding: 6px;
     border-radius: 6px;
     font-weight: bold;
-    --lwc-colorTextIconDefault: black;
+    color: white;
+    --lwc-colorTextIconDefault: white;
 }
 
 .back-button-disabled {
@@ -142,4 +143,22 @@
 .delete-modal-buttons-container {
     text-align: center;
     margin-top: 20px;
+}
+
+.spinner-container {
+    height: 300px;
+    width: 100%;
+    background-color: white;
+    text-align: center;
+}
+
+.file-table-container {
+    background-color: white;
+    padding: 10px;
+}
+
+.search-input-container {
+    display: grid;
+    grid-template-columns: 80% auto;
+    gap: 10px;
 }
