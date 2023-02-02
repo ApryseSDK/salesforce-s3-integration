@@ -1,4 +1,4 @@
-import { LightningElement, wire, track } from 'lwc';
+import { LightningElement, wire, track, api } from 'lwc';
 import { loadScript } from 'lightning/platformResourceLoader';
 import targetFolderPrefix from '@salesforce/label/c.targetFolderPrefix';
 import fileTypeIconMap from './fileTypeIconMap';
@@ -9,7 +9,8 @@ import webviewerSupportedFormatMap from './webviewerSupportedFormatMap';
 import helpers from './helpers/index';
 import insertNewFile from '@salesforce/apex/PDFTron_S3FileRecordController.insertNewFile';
 import searchFileRecords from '@salesforce/apex/PDFTron_S3FileRecordController.searchFileRecords';
-import deleteFileRecord from '@salesforce/apex/PDFTron_S3FileRecordController.deleteFileRecord'
+import deleteFileRecord from '@salesforce/apex/PDFTron_S3FileRecordController.deleteFileRecord';
+import { publish, MessageContext } from 'lightning/messageService';
 // import custom labels
 import AWS_SDK from '@salesforce/resourceUrl/awssdk'
 import accessKeyId from '@salesforce/label/c.AWSAccessKeyId';
@@ -25,7 +26,7 @@ export default class Filelist extends LightningElement {
     s3Url = S3_Bucket_url
     s3 = "";
     files = false;
-    currentPath = [];
+    @api currentPath = [];
     displayedCurrentPath = "";
     columns = [
         {
@@ -87,12 +88,14 @@ export default class Filelist extends LightningElement {
             secretAccessKey
         });
         window.AWS.config.region = region;
-        this.s3 = new window.AWS.S3({
+        const s3 = new window.AWS.S3({
             apiVersion: '2006-03-01',
             params: {
                 Bucket: bucketName
             }
         });
+        this.s3 = s3;
+        window.s3 = s3;
     }
 
     onFileInputChange(e) {

@@ -149,26 +149,22 @@ async function saveDocument(recordId) {
   const fileType = doc.getType();
   const filename = doc.getFilename();
   const xfdfString = await instance.Core.documentViewer.getAnnotationManager().exportAnnotations();
+
   const data = await doc.getFileData({
     // Saves the document with annotations in it
     xfdfString,
     downloadType: 'pdf'
   });
-
+  console.log('data', data);
   let binary = '';
+  console.log('binary');
   const bytes = new Uint8Array(data);
-  for (let i = 0; i < bytes.byteLength; i++) {
-    binary += String.fromCharCode(bytes[i]);
-  }
-
-  const base64Data = window.btoa(binary);
+  const blob = new Blob([bytes]);
 
   const payload = {
     title: filename.replace(/\.[^/.]+$/, ""),
     filename,
-    base64Data,
-    contentDocumentId: doc.__contentDocumentId,
-    recordId
+    blob,
   }
   // Post message to LWC
   parent.postMessage({ type: 'SAVE_DOCUMENT', payload }, '*');
@@ -255,6 +251,7 @@ function receiveMessage(event) {
         generateBulkDocument(event);
         break;
       case 'CLOSE_DOCUMENT':
+        console.log('close document');
         instance.closeDocument()
         break;
 
