@@ -3,4 +3,8 @@
     <description>Message channel used for communciation between WebViewer components</description>
     <isExposed>true</isExposed>
     <masterLabel>WebViewerMessageChannel</masterLabel>
+    <lightningMessageFields>
+        <fieldName>currentFilePath</fieldName>
+        <description>message To Send</description>
+    </lightningMessageFields>
 </LightningMessageChannel>

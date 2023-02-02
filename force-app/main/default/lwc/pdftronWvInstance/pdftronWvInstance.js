@@ -3,7 +3,7 @@ import { CurrentPageReference } from 'lightning/navigation';
 import { loadScript } from 'lightning/platformResourceLoader';
 import libUrl from "@salesforce/resourceUrl/lib_8_4";
 import myfilesUrl from '@salesforce/resourceUrl/myfiles';
-import { publish, createMessageContext, releaseMessageContext, subscribe, unsubscribe } from 'lightning/messageService';
+import { createMessageContext, releaseMessageContext, subscribe, unsubscribe } from 'lightning/messageService';
 import WebViewerMC from "@salesforce/messageChannel/WebViewerMessageChannel__c";
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import mimeTypes from './mimeTypes'
@@ -36,6 +36,8 @@ export default class PdftronWvInstance extends LightningElement {
 
   @wire(CurrentPageReference)
   pageRef;
+
+  filePath = "";
 
   connectedCallback() {
     this.handleSubscribe();
@@ -237,22 +239,37 @@ export default class PdftronWvInstance extends LightningElement {
           fireEvent(this.pageRef, 'doc_gen_options', keys);
           break;
         case 'SAVE_DOCUMENT':
-          const cvId = event.data.payload.contentDocumentId;
-          saveDocument({ json: JSON.stringify(event.data.payload), recordId: event.data.payload.recordId, cvId: cvId })
-          .then((response) => {
-            me.iframeWindow.postMessage({ type: 'DOCUMENT_SAVED', response }, '*');
-            
-            fireEvent(this.pageRef, 'refreshOnSave', response);
-
-            this.showNotification('Success', event.data.payload.filename + ' Saved', 'success');
+          console.log('save document', event.data.payload.blob);
+          console.log('save url', this.filePath);
+          console.log(window.s3);
+          const filePath = this.filePath.replace(`https://${window.s3.config.params.Bucket}.s3.amazonaws.com/`, "");
+          console.log('filepath', filePath);
+          window.s3.putObject({
+            Body: event.data.payload.blob,
+            Bucket: window.s3.config.params.Bucket,
+            Key: `${filePath}`,
+            ContentType: '*/*'
+          }, (err, data) => {
+            if (err) console.err('file not saved');
+            console.log('finished saving');
+            me.iframeWindow.postMessage({ type: 'DOCUMENT_SAVED', response: 'this is the response' }, '*');
           })
-          .catch(error => {
-            me.iframeWindow.postMessage({ type: 'DOCUMENT_SAVED', error }, '*')
-            fireEvent(this.pageRef, 'refreshOnSave', error);
-            console.error(event.data.payload.contentDocumentId);
-            console.error(JSON.stringify(error));
-            this.showNotification('Error', error.body, 'error');
-          });
+          // const cvId = event.data.payload.contentDocumentId;
+          // saveDocument({ json: JSON.stringify(event.data.payload), recordId: event.data.payload.recordId, cvId: cvId })
+          // .then((response) => {
+
+            
+          //   fireEvent(this.pageRef, 'refreshOnSave', response);
+
+          //   this.showNotification('Success', event.data.payload.filename + ' Saved', 'success');
+          // })
+          // .catch(error => {
+          //   me.iframeWindow.postMessage({ type: 'DOCUMENT_SAVED', error }, '*')
+          //   fireEvent(this.pageRef, 'refreshOnSave', error);
+          //   console.error(event.data.payload.contentDocumentId);
+          //   console.error(JSON.stringify(error));
+          //   this.showNotification('Error', error.body, 'error');
+          // });
           break;
         default:
           break;
@@ -271,6 +288,8 @@ export default class PdftronWvInstance extends LightningElement {
     currently convert using blob to be loaded in Webviewer
   */
   async openFileWithUrl(url) {
+    this.filePath = url;
+    console.log('url');
     this.iframeWindow.postMessage({ type: 'OPEN_FILE_WITH_URL', payload: { fileUrl: url }});
   }
 }
