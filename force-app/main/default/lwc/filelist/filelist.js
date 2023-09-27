@@ -1,6 +1,5 @@
 import { LightningElement, wire, track, api } from 'lwc';
 import { loadScript } from 'lightning/platformResourceLoader';
-import targetFolderPrefix from '@salesforce/label/c.targetFolderPrefix';
 import fileTypeIconMap from './fileTypeIconMap';
 import BACKARROW_ICON from '@salesforce/resourceUrl/backArrowIcon';
 import { fireEvent } from 'c/pubsub';
@@ -12,6 +11,7 @@ import searchFileRecords from '@salesforce/apex/PDFTron_S3FileRecordController.s
 import deleteFileRecord from '@salesforce/apex/PDFTron_S3FileRecordController.deleteFileRecord';
 import { publish, MessageContext } from 'lightning/messageService';
 // import custom labels
+import targetFolderPrefix from '@salesforce/label/c.targetFolderPrefix';
 import AWS_SDK from '@salesforce/resourceUrl/awssdk'
 import accessKeyId from '@salesforce/label/c.AWSAccessKeyId';
 import secretAccessKey from '@salesforce/label/c.AWSSecretKey';
