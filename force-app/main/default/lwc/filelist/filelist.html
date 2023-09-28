@@ -11,10 +11,19 @@
             <div>or drag your file here</div>
         </label>
         <template if:true={uploadButtonAvailable}>
-            <button class="upload-button" onclick={uploadFile}>Upload</button>
+            <button class="upload-button" onclick={handleUploadClick}>Upload</button>
         </template>
         <template if:false={uploadButtonAvailable}>
             <button class="upload-button" disabled>Upload</button>
+        </template>
+    </div>
+    <div class="bulk-upload" >
+        <lightning-input type="file" onchange={handleOnFileUpload} name="uploadFile" multiple label="Attachment">
+        </lightning-input>
+        <template for:each={textFiles} for:item="file">
+            <div key={file.id} class="bordered">
+                {file.result}
+            </div>
         </template>
     </div>
     <!-- <lightning-input type="file" onchange={onUpload}></lightning-input> -->

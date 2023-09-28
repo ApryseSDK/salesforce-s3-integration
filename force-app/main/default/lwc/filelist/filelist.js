@@ -26,6 +26,7 @@ export default class Filelist extends LightningElement {
     s3Url = S3_Bucket_url
     s3 = "";
     files = false;
+    textFiles = [];
     @api currentPath = [];
     displayedCurrentPath = "";
     columns = [
@@ -109,23 +110,23 @@ export default class Filelist extends LightningElement {
         return fileName.split('.').pop();
     }
 
-    async uploadFile() {
+    async uploadFile(file) {
         this.isUploadingFile = true;
         this.setUploadButtonAvailability();
         const params = {
-            Body: this.fileToBeUploaded,
+            Body: file,
             Bucket: bucketName,
-            Key: `${targetFolderPrefix}${this.fileToBeUploaded.name}`,
+            Key: `${targetFolderPrefix}${file.name}`,
             ContentType: '*/*'
         }
         this.files = false;
         this.s3.putObject(params, async (err, data) => {
             if (err) return console.error(err);
             await insertNewFile({
-                fileName: this.fileToBeUploaded.name,
-                filePath: `${targetFolderPrefix}${this.fileToBeUploaded.name}`
+                fileName: file.name,
+                filePath: `${targetFolderPrefix}${file.name}`
             })
-            this.fileToBeUploaded = null;
+            file = null;
             let folderPrefix = this.currentPath.join('/');
             if (this.currentPath.length) {
                 folderPrefix += '/';
@@ -135,6 +136,10 @@ export default class Filelist extends LightningElement {
             this.listObjectsInFolder(folderPrefix);
             return null;
         })
+    }
+
+    handleUploadClick() {
+        this.uploadFile(this.fileToBeUploaded).then(() => {console.log('success')}).catch((err) => {console.log(err)});
     }
 
     getBinaryStringFromFile(file) {
@@ -338,5 +343,24 @@ export default class Filelist extends LightningElement {
             }
         }));
         this.files = searchedFiles;
+    }
+
+    readFile(fileSource) {
+        return new Promise((resolve, reject) => {
+          const fileReader = new FileReader();
+          fileReader.onerror = () => reject(fileReader.error);
+          fileReader.onload = () => resolve(fileSource);
+          fileReader.readAsDataURL(fileSource);
+        });
+    }
+      
+    async handleOnFileUpload (event) {
+        this.textFiles = await Promise.all(
+            [...event.target.files].map(file => this.readFile(file))
+        );
+
+        this.textFiles.forEach(file => {
+            this.uploadFile(file).then(() => {console.log('success')}).catch((err) => {console.log(err)});
+        })
     }
 }   
