@@ -127,6 +127,7 @@ export default class Filelist extends LightningElement {
                 filePath: `${targetFolderPrefix}${file.name}`
             })
             file = null;
+            console.log(JSON.parse(JSON.stringify(this.currentPath)));
             let folderPrefix = this.currentPath.join('/');
             if (this.currentPath.length) {
                 folderPrefix += '/';
@@ -222,7 +223,7 @@ export default class Filelist extends LightningElement {
     }
 
     openFileInWebviewer(itemKey) {
-        const fileUrl = this.s3Url + itemKey;
+        const fileUrl = this.s3Url + '/' + itemKey;
         fireEvent(this.pageRef, 'openFileWithUrl', decodeURIComponent(fileUrl))
     }
 
