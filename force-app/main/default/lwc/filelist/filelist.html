@@ -1,5 +1,5 @@
 <template>
-    <h1>File Explorer</h1>
+    <!-- <h1>File Explorer</h1>
     <div class="upload-container" data-id="upload-area">
         <input class="file-chooser" type="file" id="file-chooser" onchange={onFileInputChange} >
         <template if:true={fileToBeUploaded}>
@@ -16,44 +16,132 @@
         <template if:false={uploadButtonAvailable}>
             <button class="upload-button" disabled>Upload</button>
         </template>
-    </div>
-    <div class="bulk-upload" >
+    </div> -->
+    <!-- <div class="bulk-upload" >
         <lightning-input type="file" onchange={handleOnFileUpload} name="uploadFile" multiple label="Attachment">
         </lightning-input>
-        <template for:each={textFiles} for:item="file">
-            <div key={file.id} class="bordered">
-                {file.result}
-            </div>
-        </template>
-    </div>
+    </div> -->
     <!-- <lightning-input type="file" onchange={onUpload}></lightning-input> -->
     <template if:true={filesToBeUploaded.length} for:each={filesToBeUploaded} for:item="file">
         <div key={file.name}>{file.name}</div>
     </template>
     <div class="file-table-container">
-        <div class="search-input-container">
-            <input onchange={onSearchInputChange}/>
-            <button onclick={searchFileRecords}>Search</button>
-        </div>
-        <div class="header">
+        <div class="header slds-grid">
             <template if:true={currentPath.length}>
-                <div onclick={onBackClick} class="back-button">
+                <div onclick={onBackClick} class="back-button slds-col slds-size_1-of-12 slds-m-right_x-small">
                     <lightning-icon icon-name="utility:back" class="back-arrow-icon" size="x-small"></lightning-icon>
-                    back
                 </div>
             </template>
             <template if:false={currentPath.length}>
-                <div onclick={onBackClick} class="back-button-disabled">
+                <div onclick={onBackClick} class="back-button-disabled slds-col slds-size_1-of-12 slds-m-right_x-small">
                     <lightning-icon icon-name="utility:back" class="back-arrow-icon" size="x-small"></lightning-icon>
-                    back
                 </div>
             </template>
-            <template if:true={currentPath.length}>
-                <div class="current-path-indicator">{displayedCurrentPath}</div>
-            </template>
+            <c-lookup
+                class="slds-col slds-size_1-of-2"
+                onsearch={onSearchInputChange}
+                placeholder="Search File in S3..."
+            >
+            </c-lookup>
+            <div id="fileUploader" class="slds-col slds-m-left_x-small slds-grow-none">
+                <!-- lightning button for open modal window -->
+                <div>
+                    <lightning-button
+                        variant="border-filled"
+                        label="Upload"
+                        title="Upload"
+                        onclick={openModal}
+                        icon-name="utility:upload"
+                        class="slds-p-around_xxx-small">
+                    </lightning-button>
+                </div>
+                <template if:true={isModalOpen}>
+                    <!-- Modal/Popup Box LWC starts here -->
+                    <section
+                        role="dialog"
+                        tabindex="-1"
+                        aria-labelledby="modal-heading-01"
+                        aria-modal="true"
+                        aria-describedby="modal-content-id-1"
+                        class="slds-modal slds-fade-in-open"
+                    >
+                        <div class="slds-modal__container">
+                        <!-- Modal/Popup Box LWC header here -->
+                        <header class="slds-modal__header">
+                            <button
+                            class="
+                                slds-button slds-button_icon
+                                slds-modal__close
+                                slds-button_icon-inverse
+                            "
+                            title="Close"
+                            onclick={closeModal}
+                            >
+                            <lightning-icon
+                                icon-name="utility:close"
+                                alternative-text="close"
+                                variant="inverse"
+                                size="small"
+                            ></lightning-icon>
+                            <span class="slds-assistive-text">Close</span>
+                            </button>
+                            <h2
+                            id="modal-heading-01"
+                            class="slds-text-heading_medium slds-hyphenate"
+                            >
+                            Document Upload
+                            </h2>
+                        </header>
+                        <!-- Modal/Popup Box LWC body starts here -->
+                        <div
+                            class="slds-modal__content slds-p-around_medium"
+                            id="modal-content-id-1"
+                        >
+                            <lightning-card title="Upload Attachments">
+                            <!-- File Picker -->
+                            <div class="slds-align_absolute-center">
+                                <lightning-input 
+                                    type="file"
+                                    onchange={handleOnFileUpload} 
+                                    name="uploadFile" 
+                                    label="Attachment"
+                                    multiple 
+                                >
+                                </lightning-input>
+                            </div>
+                            </lightning-card>
+                        </div>
+                        <!-- Modal/Popup Box LWC footer starts here -->
+                        <footer class="slds-modal__footer">
+                            <div class="slds-align_absolute-center">
+                            <button
+                                class="slds-button slds-button_neutral"
+                                onclick={closeModal}
+                                title="Cancel"
+                            >
+                                Close
+                            </button>
+                            </div>
+                        </footer>
+                        </div>
+                    </section>
+                    <div class="slds-backdrop slds-backdrop_open"></div>
+                </template>
+                <!--Use template if:true to display/hide popup based on isModalOpen value-->
+            </div>
+            <lightning-button 
+                label="Create Folder" 
+                icon-name="utility:add" 
+                title="Create Folder" 
+                onclick={showFolderModal} 
+                class="slds-col slds-m-left_x-small slds-grow-none">
+            </lightning-button>
         </div>
         <template if:true={files}>
             <div class="table-container">
+                <template if:true={currentPath.length}>
+                    <div class="current-path-indicator">{displayedCurrentPath}</div>
+                </template>
                 <div class="table-header">
     
                 </div>
@@ -87,6 +175,16 @@
                 </table>
             </div>
         </template>
+        <div
+            id="wvContainer"
+            class="
+                slds-var-p-left_x-small
+                slds-var-p-right_x-small
+                slds-var-p-bottom_x-small
+            "
+        >
+            <c-pdftron-wv-instance record-id={recordId}></c-pdftron-wv-instance>
+        </div>
     </div>
     <template if:true={deleteModalOpened}>
         <div class="modal-backdrop"></div>
@@ -103,4 +201,60 @@
             <c-spinner></c-spinner>
         </div>
     </template>
+    <template if:true={folderCreateModal}>
+        <section 
+            role="dialog" 
+            tabindex="-1" 
+            aria-labelledby="modal-heading-01" 
+            aria-modal="true" 
+            aria-describedby="modal-content-id-1" 
+            class="slds-modal slds-fade-in-open"
+        >
+
+        <div class="slds-modal__container">
+        <!-- modal header start -->
+        <header class="slds-modal__header">
+            <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse" title="Close" onclick={hideFolderModal}>
+                <lightning-icon 
+                    icon-name="utility:close"
+                    alternative-text="close"
+                    variant="inverse"
+                    size="small" 
+                ></lightning-icon>
+                <span class="slds-assistive-text">Close</span>
+            </button>
+            <h2 class="slds-text-heading_medium slds-hyphenate">Create Folder</h2>
+        </header>
+    
+        <!-- modal body start -->
+        <div class="slds-modal__content slds-p-around_medium" >
+            <lightning-input 
+                label="Folder Name" 
+                value={folderName} 
+                onchange={handleFolderNameChange}
+            ></lightning-input>
+            <span
+                class="folder-helper-text"
+            >
+                Current Path: /{displayedCurrentPath}
+            </span>
+        </div>
+
+        <!-- modal footer start-->
+        <footer class="slds-modal__footer">
+            <button 
+                class="slds-button slds-button_neutral" 
+                onclick={createFolder}
+            >Create</button>
+            <button 
+                class="slds-button slds-button_neutral" 
+                onclick={hideFolderModal}
+            >Cancel</button>
+        </footer>
+    
+        </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+    
 </template>

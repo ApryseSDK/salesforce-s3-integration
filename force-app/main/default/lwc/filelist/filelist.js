@@ -11,7 +11,6 @@ import searchFileRecords from '@salesforce/apex/PDFTron_S3FileRecordController.s
 import deleteFileRecord from '@salesforce/apex/PDFTron_S3FileRecordController.deleteFileRecord';
 import { publish, MessageContext } from 'lightning/messageService';
 // import custom labels
-import targetFolderPrefix from '@salesforce/label/c.targetFolderPrefix';
 import AWS_SDK from '@salesforce/resourceUrl/awssdk'
 import accessKeyId from '@salesforce/label/c.AWSAccessKeyId';
 import secretAccessKey from '@salesforce/label/c.AWSSecretKey';
@@ -23,12 +22,15 @@ export default class Filelist extends LightningElement {
     @wire(CurrentPageReference) pageRef;
     @track file__c;
     @track error;
+    @track isModalOpen = false;
+    folderCreateModal = false;
     s3Url = S3_Bucket_url
     s3 = "";
     files = false;
     textFiles = [];
     @api currentPath = [];
     displayedCurrentPath = "";
+    folderName = "";
     columns = [
         {
             label: 'File Name',
@@ -80,7 +82,7 @@ export default class Filelist extends LightningElement {
         }
 
         this.eventListenersAdded = true;
-        this.registerEvents();
+        // this.registerEvents();
     }
 
     initializeAWS() {
@@ -110,13 +112,16 @@ export default class Filelist extends LightningElement {
         return fileName.split('.').pop();
     }
 
+    //filepath and key are the same
     async uploadFile(file) {
         this.isUploadingFile = true;
         this.setUploadButtonAvailability();
+        let folderPrefix = (this.currentPath.length > 0) ? this.currentPath.join('/') + '/' : '';
+        console.log(folderPrefix);
         const params = {
             Body: file,
             Bucket: bucketName,
-            Key: `${targetFolderPrefix}${file.name}`,
+            Key: `${folderPrefix}${file.name}`,
             ContentType: '*/*'
         }
         this.files = false;
@@ -124,11 +129,11 @@ export default class Filelist extends LightningElement {
             if (err) return console.error(err);
             await insertNewFile({
                 fileName: file.name,
-                filePath: `${targetFolderPrefix}${file.name}`
+                filePath: `${folderPrefix}${file.name}`
             })
             file = null;
             console.log(JSON.parse(JSON.stringify(this.currentPath)));
-            let folderPrefix = this.currentPath.join('/');
+            
             if (this.currentPath.length) {
                 folderPrefix += '/';
             }
@@ -167,6 +172,7 @@ export default class Filelist extends LightningElement {
         const folderPathArray = folderPrefix.split("/");
         folderPathArray.pop();
         this.currentPath = folderPathArray;
+        console.log(JSON.stringify(this.currentPath));
         this.displayedCurrentPath = this.currentPath.join("/");
         this.files = false;
         this.listObjectsInFolder(folderPrefix);
@@ -260,34 +266,15 @@ export default class Filelist extends LightningElement {
         this.filesToBeUploaded = currentSelectedFiles;
     }
 
-    // this is for future improvement to upload multiple files at once
-    uploadFiles() {
-        const numberOfFilesToBeUploaded = this.filesToBeUploaded.length;
-        const uploadPromises = [];
-        for(let i = 0; i <numberOfFilesToBeUploaded; i++) {
-            uploadPromises.push(new Promise(async (resolve, reject) => {
-                const binary = await this.getBinaryStringFromFile(this.fileToBeUploaded);
-                const params = {
-                    Body: binary,
-                    Bucket: bucketName,
-                    Key: `${targetFolderPrefix}${this.fileToBeUploaded.name}`,
-                    ContentType: 'application/pdf'
-                };
-                this.s3.putObject({
-                    
-                })
-            }))
-        }
-    }
 
-    registerEvents = () => {
-        const dropArea = this.template.querySelector('[data-id="upload-area"]');
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-            dropArea.addEventListener(eventName, this.preventDefaults)
-        });
+    // registerEvents = () => {
+    //     const dropArea = this.template.querySelector('[data-id="upload-area"]');
+    //     ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+    //         dropArea.addEventListener(eventName, this.preventDefaults)
+    //     });
 
-        dropArea.addEventListener('drop', this.handleDrop);
-    }
+    //     dropArea.addEventListener('drop', this.handleDrop);
+    // }
 
     handleDrop = (e) => {
         this.fileToBeUploaded = e.dataTransfer.files[0];
@@ -354,14 +341,35 @@ export default class Filelist extends LightningElement {
           fileReader.readAsDataURL(fileSource);
         });
     }
-      
+    
     async handleOnFileUpload (event) {
         this.textFiles = await Promise.all(
             [...event.target.files].map(file => this.readFile(file))
-        );
-
-        this.textFiles.forEach(file => {
-            this.uploadFile(file).then(() => {console.log('success')}).catch((err) => {console.log(err)});
-        })
+            );
+            
+            this.textFiles.forEach(file => {
+                this.uploadFile(file).then(() => {console.log('success')}).catch((err) => {console.log(err)});
+            })
     }
-}   
+    openModal() {
+        this.isModalOpen = true;
+    }
+    
+    closeModal() {
+        this.isModalOpen = false;
+    }
+    
+    showFolderModal() {
+        this.folderCreateModal = true;
+    }
+    hideFolderModal() {
+        this.folderCreateModal = false;
+    }
+    handleFolderNameChange(event) {
+        this.folderName = event.target.value;
+    }
+    createFolder() {
+        this.folderName = this.folderName.trim();
+        this.hideFolderModal();
+    }
+}
