@@ -37,6 +37,10 @@ export default class Filelist extends LightningElement {
             fieldName: 'Key'
         },
         {
+            label: 'Folder Path',
+            fieldName: 'Folder',
+        },
+        {
             label: 'File Size',
             fieldName: 'FileSize'
         },
@@ -86,6 +90,7 @@ export default class Filelist extends LightningElement {
     }
 
     initializeAWS() {
+        debugger;
         window.AWS.config.update({
             accessKeyId,
             secretAccessKey
@@ -195,23 +200,27 @@ export default class Filelist extends LightningElement {
             folderPrefix += '/';
         }
         let displayedItems = [];
-
-        data.CommonPrefixes.forEach(item => displayedItems.push({
-            Key: item.Prefix.replace(folderPrefix, "").replace("/", ""),
-            LastModifiedAt: '-',
-            FileSize: '',
-            Icon: fileTypeIconMap.DIRECTORY,
-            onclick: function() {
-                return this.onFolderClick(item.Prefix)
-            },
-        }));
+        data.CommonPrefixes.forEach(item => {
+            const {fileName, folderPath} = helpers.retrieveFolderAndFileName(item.Prefix);
+            displayedItems.push({
+                Key: fileName,
+                Folder: folderPath,
+                LastModifiedAt: '-',
+                FileSize: '',
+                Icon: fileTypeIconMap.DIRECTORY,
+                onclick: function() {
+                    return this.onFolderClick(item.Prefix)
+                },
+        })});
         data.Contents.forEach(item => {
             if (item.Size !== 0) {
                 const fileType = helpers.getFileTypeByFileName(item.Key);
+                const {fileName, folderPath} = helpers.retrieveFolderAndFileName(item.Key);
                 displayedItems.push({
-                    Key: item.Key.replace(folderPrefix, ""),
-                    FileSize: helpers.formatBytes(item.Size),
+                    Key: fileName,
+                    Folder: folderPath,
                     LastModifiedAt: item.LastModified.toString(),
+                    FileSize: helpers.formatBytes(item.Size),
                     Icon: fileTypeIconMap[fileType.toUpperCase()],
                     // this will probably need a map in the future
                     CanOpenInWebviewer: webviewerSupportedFormatMap[fileType.toLowerCase()]? true : false,
@@ -316,20 +325,24 @@ export default class Filelist extends LightningElement {
             input: this.searchKeyWord
         });
 
-        const searchedFiles = resp.map((file) => ({
-            Key: file.Name,
-            FileSize: '-',
-            Icon: fileTypeIconMap[helpers.getFileTypeByFileName(file.Name).toUpperCase()],
-            // this will probably need a map in the future
-            CanOpenInWebviewer: webviewerSupportedFormatMap[helpers.getFileTypeByFileName(file.Name).toLowerCase()]? true : false,
-            // CanOpenInWebviewer: true,
-            onOpenClick: function() {
-                this.openFileInWebviewer(file.S3_Path__c);
-            },
-            onDeleteClick: function() {
-                this.openDeleteModal(file.S3_Path__c);
+        const searchedFiles = resp.map((file) => {
+            const {fileName, folderPath} = helpers.retrieveFolderAndFileName(file.S3_Path__c);
+            return {
+                Key: file.Name,
+                Folder: folderPath,
+                FileSize: '-',
+                Icon: fileTypeIconMap[helpers.getFileTypeByFileName(file.Name).toUpperCase()],
+                // this will probably need a map in the future
+                CanOpenInWebviewer: webviewerSupportedFormatMap[helpers.getFileTypeByFileName(file.Name).toLowerCase()]? true : false,
+                // CanOpenInWebviewer: true,
+                onOpenClick: function() {
+                    this.openFileInWebviewer(file.S3_Path__c);
+                },
+                onDeleteClick: function() {
+                    this.openDeleteModal(file.S3_Path__c);
+                }
             }
-        }));
+    });
         this.files = searchedFiles;
     }
 

@@ -37,12 +37,14 @@
                     <lightning-icon icon-name="utility:back" class="back-arrow-icon" size="x-small"></lightning-icon>
                 </div>
             </template>
-            <c-lookup
+            <!-- <c-lookup
                 class="slds-col slds-size_1-of-2"
                 onsearch={onSearchInputChange}
                 placeholder="Search File in S3..."
             >
-            </c-lookup>
+            </c-lookup> -->
+            <input onchange={onSearchInputChange}/>
+            <button onclick={searchFileRecords}>Search</button>
             <div id="fileUploader" class="slds-col slds-m-left_x-small slds-grow-none">
                 <!-- lightning button for open modal window -->
                 <div>
@@ -149,6 +151,7 @@
                     <thead>
                         <tr>
                             <th>Name</th>
+                            <th>Folder</th>
                             <th>File Size</th>
                             <th>Action</th>
                         </tr>
@@ -162,6 +165,7 @@
                                         {currentItem.Key}
                                     </div>  
                                 </th>
+                                <th>{currentItem.Folder}</th>
                                 <th>{currentItem.FileSize}</th>
                                 <th>
                                     <template if:true={currentItem.CanOpenInWebviewer}>
