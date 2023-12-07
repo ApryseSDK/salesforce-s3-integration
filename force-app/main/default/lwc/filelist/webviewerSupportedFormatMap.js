@@ -6,6 +6,7 @@ const webviewerSupportedFormatMap = {
     'ppt': 'PPT',
     'pptx': 'PPTX',
     'jpg': 'JPG',
+    'jpeg': 'JPEG',
     'png': 'PNG',
     'xod': 'XOD',
 }

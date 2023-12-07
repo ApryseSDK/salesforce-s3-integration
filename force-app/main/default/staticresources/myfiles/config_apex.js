@@ -33,15 +33,6 @@ window.CoreControls.setCustomFontURL('https://pdftron.s3.amazonaws.com/custom/ID
 
 var global_document;
 
-async function fillDocument(event) {
-  const autofillMap = event.data.mapping;
-
-  console.log('autofillMap', autofillMap);
-
-  await documentViewer.getDocument().applyTemplateValues(autofillMap);
-
-
-}
 
 
 function _arrayBufferToBase64( buffer ) {

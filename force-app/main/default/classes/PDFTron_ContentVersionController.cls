@@ -81,29 +81,7 @@ public with sharing class PDFTron_ContentVersionController {
         }
     }
 
-    @AuraEnabled
-    public static String createCMTRecord(String jsonString){
-        try {
-            Map<String, Object> parsedData = (Map<String, Object>)JSON.deserializeUntyped(jsonString);
-            system.debug('##mappy: ' + parsedData);
-            Map<String, Object> cmt_map = new Map<String, Object>();
-            cmt_map.put('Mapping__c', String.valueOf(parsedData.get('mapping')));
-            cmt_map.put('sObject__c', parsedData.get('sObjectName'));
-            cmt_map.put('Template_Name__c', parsedData.get('templateName'));
-            cmt_map.put('Template_Id__c', parsedData.get('templateId'));
-
-            String cmtName = String.valueOf(parsedData.get('cmtName'));
-
-            String recordName = 'PDFTron_Template_Mapping.' + cmtName;
-
-            system.debug('### rec name: '+recordName);
-
-            PDFTron_CMT_Helper.createUpdateMetadata(recordName, recordName, cmt_map);
-            return 'Done!';
-        } catch(Exception e) {
-            throw new AuraHandledException(e.getMessage());
-        }
-    }
+    
 
     @AuraEnabled(Cacheable=true)
     public static List<LookupSearchResult> searchSOSL(String searchTerm, List<String> selectedIds) {
@@ -192,32 +170,6 @@ public with sharing class PDFTron_ContentVersionController {
         return results;
     }
 
-    @AuraEnabled(Cacheable=true)
-    public static List<TemplateWrapper> getTemplateMappingResults() {
-
-        // Prepare results
-        List<TemplateWrapper> results = new List<TemplateWrapper>();
-        String icon = 'doctype:unknown';
-
-        for (PDFTron_Template_Mapping__mdt template : [
-            SELECT id, sObject__c, Mapping__c, Template_Id__c, DeveloperName, Template_Name__c
-            FROM PDFTron_Template_Mapping__mdt
-        ]) {
-
-            String subtitle = template.sObject__c + ' - ' + template.Template_Name__c;
-
-            if (String.isNotBlank(template.sObject__c)){
-                icon = 'standard:' + template.sObject__c.toLowerCase();
-            }
-            
-            TemplateWrapper item = new TemplateWrapper(new LookupSearchResult(template.id, 'PDFTron_Template_Mapping__mdt', icon, template.DeveloperName, subtitle ), template);
-            results.add(item);
-
-        }
-       
-        //results.sort();
-        return results;
-    }
 
     //get single file from Id
     @AuraEnabled(Cacheable=true) 
@@ -423,17 +375,6 @@ public with sharing class PDFTron_ContentVersionController {
     //         FROM PDFTron_Template_Mapping__mdt
     // ])
 
-    public class TemplateWrapper {
-        @AuraEnabled
-        public LookupSearchResult lookup {get; set;}
-        @AuraEnabled
-        public PDFTron_Template_Mapping__mdt template {get; set;}
-
-        public TemplateWrapper(LookupSearchResult lookup, PDFTron_Template_Mapping__mdt template){
-            this.lookup = lookup;
-            this.template = template;
-        }
-    }
 
     public class PDFTron_ContentVersionPayload {
         public String title {get; set;}

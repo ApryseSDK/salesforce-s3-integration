@@ -1,6 +1,5 @@
 import { LightningElement, wire, track, api } from 'lwc';
 import { loadScript } from 'lightning/platformResourceLoader';
-import targetFolderPrefix from '@salesforce/label/c.targetFolderPrefix';
 import fileTypeIconMap from './fileTypeIconMap';
 import BACKARROW_ICON from '@salesforce/resourceUrl/backArrowIcon';
 import { fireEvent } from 'c/pubsub';
@@ -23,15 +22,23 @@ export default class Filelist extends LightningElement {
     @wire(CurrentPageReference) pageRef;
     @track file__c;
     @track error;
+    @track isModalOpen = false;
+    folderCreateModal = false;
     s3Url = S3_Bucket_url
     s3 = "";
     files = false;
+    textFiles = [];
     @api currentPath = [];
     displayedCurrentPath = "";
+    folderName = "";
     columns = [
         {
             label: 'File Name',
             fieldName: 'Key'
+        },
+        {
+            label: 'Folder Path',
+            fieldName: 'Folder',
         },
         {
             label: 'File Size',
@@ -79,10 +86,11 @@ export default class Filelist extends LightningElement {
         }
 
         this.eventListenersAdded = true;
-        this.registerEvents();
+        // this.registerEvents();
     }
 
     initializeAWS() {
+        debugger;
         window.AWS.config.update({
             accessKeyId,
             secretAccessKey
@@ -109,24 +117,28 @@ export default class Filelist extends LightningElement {
         return fileName.split('.').pop();
     }
 
-    async uploadFile() {
+    //filepath and key are the same
+    async uploadFile(file) {
         this.isUploadingFile = true;
         this.setUploadButtonAvailability();
+        let folderPrefix = (this.currentPath.length > 0) ? this.currentPath.join('/') + '/' : '';
+        console.log(folderPrefix);
         const params = {
-            Body: this.fileToBeUploaded,
+            Body: file,
             Bucket: bucketName,
-            Key: `${targetFolderPrefix}${this.fileToBeUploaded.name}`,
+            Key: `${folderPrefix}${file.name}`,
             ContentType: '*/*'
         }
         this.files = false;
         this.s3.putObject(params, async (err, data) => {
             if (err) return console.error(err);
             await insertNewFile({
-                fileName: this.fileToBeUploaded.name,
-                filePath: `${targetFolderPrefix}${this.fileToBeUploaded.name}`
+                fileName: file.name,
+                filePath: `${folderPrefix}${file.name}`
             })
-            this.fileToBeUploaded = null;
-            let folderPrefix = this.currentPath.join('/');
+            file = null;
+            console.log(JSON.parse(JSON.stringify(this.currentPath)));
+            
             if (this.currentPath.length) {
                 folderPrefix += '/';
             }
@@ -135,6 +147,10 @@ export default class Filelist extends LightningElement {
             this.listObjectsInFolder(folderPrefix);
             return null;
         })
+    }
+
+    handleUploadClick() {
+        this.uploadFile(this.fileToBeUploaded).then(() => {console.log('success')}).catch((err) => {console.log(err)});
     }
 
     getBinaryStringFromFile(file) {
@@ -161,6 +177,7 @@ export default class Filelist extends LightningElement {
         const folderPathArray = folderPrefix.split("/");
         folderPathArray.pop();
         this.currentPath = folderPathArray;
+        console.log(JSON.stringify(this.currentPath));
         this.displayedCurrentPath = this.currentPath.join("/");
         this.files = false;
         this.listObjectsInFolder(folderPrefix);
@@ -183,23 +200,27 @@ export default class Filelist extends LightningElement {
             folderPrefix += '/';
         }
         let displayedItems = [];
-
-        data.CommonPrefixes.forEach(item => displayedItems.push({
-            Key: item.Prefix.replace(folderPrefix, "").replace("/", ""),
-            LastModifiedAt: '-',
-            FileSize: '',
-            Icon: fileTypeIconMap.DIRECTORY,
-            onclick: function() {
-                return this.onFolderClick(item.Prefix)
-            },
-        }));
+        data.CommonPrefixes.forEach(item => {
+            const {fileName, folderPath} = helpers.retrieveFolderAndFileName(item.Prefix);
+            displayedItems.push({
+                Key: fileName,
+                Folder: folderPath,
+                LastModifiedAt: '-',
+                FileSize: '',
+                Icon: fileTypeIconMap.DIRECTORY,
+                onclick: function() {
+                    return this.onFolderClick(item.Prefix)
+                },
+        })});
         data.Contents.forEach(item => {
             if (item.Size !== 0) {
                 const fileType = helpers.getFileTypeByFileName(item.Key);
+                const {fileName, folderPath} = helpers.retrieveFolderAndFileName(item.Key);
                 displayedItems.push({
-                    Key: item.Key.replace(folderPrefix, ""),
-                    FileSize: helpers.formatBytes(item.Size),
+                    Key: fileName,
+                    Folder: folderPath,
                     LastModifiedAt: item.LastModified.toString(),
+                    FileSize: helpers.formatBytes(item.Size),
                     Icon: fileTypeIconMap[fileType.toUpperCase()],
                     // this will probably need a map in the future
                     CanOpenInWebviewer: webviewerSupportedFormatMap[fileType.toLowerCase()]? true : false,
@@ -217,7 +238,7 @@ export default class Filelist extends LightningElement {
     }
 
     openFileInWebviewer(itemKey) {
-        const fileUrl = this.s3Url + itemKey;
+        const fileUrl = this.s3Url + '/' + itemKey;
         fireEvent(this.pageRef, 'openFileWithUrl', decodeURIComponent(fileUrl))
     }
 
@@ -254,34 +275,15 @@ export default class Filelist extends LightningElement {
         this.filesToBeUploaded = currentSelectedFiles;
     }
 
-    // this is for future improvement to upload multiple files at once
-    uploadFiles() {
-        const numberOfFilesToBeUploaded = this.filesToBeUploaded.length;
-        const uploadPromises = [];
-        for(let i = 0; i <numberOfFilesToBeUploaded; i++) {
-            uploadPromises.push(new Promise(async (resolve, reject) => {
-                const binary = await this.getBinaryStringFromFile(this.fileToBeUploaded);
-                const params = {
-                    Body: binary,
-                    Bucket: bucketName,
-                    Key: `${targetFolderPrefix}${this.fileToBeUploaded.name}`,
-                    ContentType: 'application/pdf'
-                };
-                this.s3.putObject({
-                    
-                })
-            }))
-        }
-    }
 
-    registerEvents = () => {
-        const dropArea = this.template.querySelector('[data-id="upload-area"]');
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-            dropArea.addEventListener(eventName, this.preventDefaults)
-        });
+    // registerEvents = () => {
+    //     const dropArea = this.template.querySelector('[data-id="upload-area"]');
+    //     ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+    //         dropArea.addEventListener(eventName, this.preventDefaults)
+    //     });
 
-        dropArea.addEventListener('drop', this.handleDrop);
-    }
+    //     dropArea.addEventListener('drop', this.handleDrop);
+    // }
 
     handleDrop = (e) => {
         this.fileToBeUploaded = e.dataTransfer.files[0];
@@ -323,20 +325,64 @@ export default class Filelist extends LightningElement {
             input: this.searchKeyWord
         });
 
-        const searchedFiles = resp.map((file) => ({
-            Key: file.Name,
-            FileSize: '-',
-            Icon: fileTypeIconMap[helpers.getFileTypeByFileName(file.Name).toUpperCase()],
-            // this will probably need a map in the future
-            CanOpenInWebviewer: webviewerSupportedFormatMap[helpers.getFileTypeByFileName(file.Name).toLowerCase()]? true : false,
-            // CanOpenInWebviewer: true,
-            onOpenClick: function() {
-                this.openFileInWebviewer(file.S3_Path__c);
-            },
-            onDeleteClick: function() {
-                this.openDeleteModal(file.S3_Path__c);
+        const searchedFiles = resp.map((file) => {
+            const {fileName, folderPath} = helpers.retrieveFolderAndFileName(file.S3_Path__c);
+            return {
+                Key: file.Name,
+                Folder: folderPath,
+                FileSize: '-',
+                Icon: fileTypeIconMap[helpers.getFileTypeByFileName(file.Name).toUpperCase()],
+                // this will probably need a map in the future
+                CanOpenInWebviewer: webviewerSupportedFormatMap[helpers.getFileTypeByFileName(file.Name).toLowerCase()]? true : false,
+                // CanOpenInWebviewer: true,
+                onOpenClick: function() {
+                    this.openFileInWebviewer(file.S3_Path__c);
+                },
+                onDeleteClick: function() {
+                    this.openDeleteModal(file.S3_Path__c);
+                }
             }
-        }));
+    });
         this.files = searchedFiles;
     }
-}   
+
+    readFile(fileSource) {
+        return new Promise((resolve, reject) => {
+          const fileReader = new FileReader();
+          fileReader.onerror = () => reject(fileReader.error);
+          fileReader.onload = () => resolve(fileSource);
+          fileReader.readAsDataURL(fileSource);
+        });
+    }
+    
+    async handleOnFileUpload (event) {
+        this.textFiles = await Promise.all(
+            [...event.target.files].map(file => this.readFile(file))
+            );
+            
+            this.textFiles.forEach(file => {
+                this.uploadFile(file).then(() => {console.log('success')}).catch((err) => {console.log(err)});
+            })
+    }
+    openModal() {
+        this.isModalOpen = true;
+    }
+    
+    closeModal() {
+        this.isModalOpen = false;
+    }
+    
+    showFolderModal() {
+        this.folderCreateModal = true;
+    }
+    hideFolderModal() {
+        this.folderCreateModal = false;
+    }
+    handleFolderNameChange(event) {
+        this.folderName = event.target.value;
+    }
+    createFolder() {
+        this.folderName = this.folderName.trim();
+        this.hideFolderModal();
+    }
+}
