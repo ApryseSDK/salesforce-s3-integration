@@ -1,7 +1,7 @@
 import { LightningElement, wire, track, api } from 'lwc';
 import { CurrentPageReference } from 'lightning/navigation';
 import { loadScript } from 'lightning/platformResourceLoader';
-import libUrl from "@salesforce/resourceUrl/lib_8_4";
+import libUrl from "@salesforce/resourceUrl/lib";
 import myfilesUrl from '@salesforce/resourceUrl/myfiles';
 import { createMessageContext, releaseMessageContext, subscribe, unsubscribe } from 'lightning/messageService';
 import WebViewerMC from "@salesforce/messageChannel/WebViewerMessageChannel__c";

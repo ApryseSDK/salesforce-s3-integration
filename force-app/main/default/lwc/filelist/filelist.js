@@ -1,7 +1,7 @@
 import { LightningElement, wire, track, api } from 'lwc';
 import { loadScript } from 'lightning/platformResourceLoader';
 import fileTypeIconMap from './fileTypeIconMap';
-import BACKARROW_ICON from '@salesforce/resourceUrl/backArrowIcon';
+import myfiles from '@salesforce/resourceUrl/myfiles';
 import { fireEvent } from 'c/pubsub';
 import { CurrentPageReference } from 'lightning/navigation';
 import webviewerSupportedFormatMap from './webviewerSupportedFormatMap';
@@ -50,7 +50,7 @@ export default class Filelist extends LightningElement {
         }
     ];
     retreivedFiles = false;
-    backArrowIcon = `${BACKARROW_ICON}#backArrow`;
+    backArrowIcon = `${myfiles}/backArrow#backArrow`;
     fileToBeDeleted = null;
     deleteModalOpened = false;
     fileToBeUploaded = null;
