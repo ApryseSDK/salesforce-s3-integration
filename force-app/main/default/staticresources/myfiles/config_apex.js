@@ -1,5 +1,5 @@
 var resourceURL = '/resource/'
-window.CoreControls.forceBackendType('ems');
+window.Core.forceBackendType('ems');
 
 var urlSearch = new URLSearchParams(location.hash)
 var custom = JSON.parse(urlSearch.get('custom'));
@@ -11,25 +11,23 @@ resourceURL = resourceURL + custom.namespacePrefix;
  * uploaded files stay under the 5mb limit
  */
 // office workers
-window.Core.setOfficeWorkerPath(resourceURL + 'office_8_4')
-window.Core.setOfficeAsmPath(resourceURL + 'office_asm_8_4');
-window.Core.setOfficeResourcePath(resourceURL + 'office_resource_8_4');
+window.Core.setOfficeWorkerPath(resourceURL + 'office')
+window.Core.setOfficeAsmPath(resourceURL + 'office_asm');
+window.Core.setOfficeResourcePath(resourceURL + 'office_resource');
 
 // pdf workers
-window.Core.setPDFResourcePath(resourceURL + 'resource_8_4')
+window.Core.setPDFResourcePath(resourceURL + 'resource')
 if (custom.fullAPI) {
-  window.Core.setPDFWorkerPath(resourceURL + 'pdf_full_8_4')
-  window.Core.setPDFAsmPath(resourceURL + 'asm_full_8_4');
+  window.Core.setPDFWorkerPath(resourceURL + 'pdf_full')
 } else {
-  window.Core.setPDFWorkerPath(resourceURL + 'pdf_lean_8_4')
-  window.Core.setPDFAsmPath(resourceURL + 'asm_lean_8_4');
+  window.Core.setPDFWorkerPath(resourceURL + 'pdf_lean')
 }
 
 // external 3rd party libraries
-window.Core.setExternalPath(resourceURL + 'external_8_4')
+window.Core.setExternalPath(resourceURL + 'external')
 
 // external 3rd party libraries
-window.CoreControls.setCustomFontURL('https://pdftron.s3.amazonaws.com/custom/ID-zJWLuhTffd3c/vlocity/webfontsv20/');
+window.Core.setCustomFontURL('https://pdftron.s3.amazonaws.com/custom/ID-zJWLuhTffd3c/vlocity/webfontsv20/');
 
 var global_document;
 
@@ -168,7 +166,7 @@ window.addEventListener('viewerLoaded', async function () {
    * On keydown of either the button combination Ctrl+S or Cmd+S, invoke the
    * saveDocument function
    */
-  instance.hotkeys.on('ctrl+s, command+s', e => {
+  instance.UI.hotkeys.on('ctrl+s, command+s', e => {
     e.preventDefault();
     saveDocument();
   });
@@ -191,7 +189,7 @@ window.addEventListener('viewerLoaded', async function () {
   })
 
   // Create a button, with a disk icon, to invoke the saveDocument function
-  instance.setHeaderItems(function (header) {
+  instance.UI.setHeaderItems(function (header) {
     var myCustomButton = {
       type: 'actionButton',
       dataElement: 'saveDocumentButton',
@@ -212,13 +210,13 @@ function receiveMessage(event) {
     switch (event.data.type) {
       case 'OPEN_DOCUMENT_BLOB':
         const { blob, extension, filename, documentId } = event.data.payload;
-        instance.loadDocument(blob, { extension, filename, documentId });
+        instance.UI.loadDocument(blob, { extension, filename, documentId });
         global_document = event.data.payload;
         break;
       case 'DOCUMENT_SAVED':
         instance.showErrorMessage('Document saved!')
         setTimeout(() => {
-          instance.closeElements(['errorModal', 'loadingModal'])
+          instance.UI.closeElements(['errorModal', 'loadingModal'])
         }, 2000)
         break;
       case 'LMS_RECEIVED':
@@ -243,13 +241,13 @@ function receiveMessage(event) {
         break;
       case 'CLOSE_DOCUMENT':
         console.log('close document');
-        instance.closeDocument()
+        instance.UI.closeDocument()
         break;
 
       case 'OPEN_FILE_WITH_URL':
         const { fileUrl } = event.data.payload;
         console.log('OPEN_FILE_WITH_URL', fileUrl);
-        instance.loadDocument(fileUrl);
+        instance.UI.loadDocument(fileUrl);
       default:
         break;
     }
